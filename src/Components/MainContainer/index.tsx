@@ -56,39 +56,33 @@ const MainContainer = ({
 
   React.useEffect(() => {
     if (is_recording) {
+      setRecording([]);
       setStartTime(Date.now());
     }
   }, [is_recording]);
 
   React.useEffect(() => {
     if (is_playback) {
-      const promises: Promise<void>[] = [];
-      recording.forEach((item) => {
-        const promise = new Promise<void>((resolve, reject) => {
-          setTimeout(() => {
-            playAudioAndHighlight(item.keyConfig).then(resolve);
-          }, item.time);
-        });
-        promises.push(promise);
-      });
-
-      Promise.all(promises).then(() => {
-        setIsPlayback(false);
+      recording.forEach((item, index) => {
+        setTimeout(() => {
+          playAudioAndHighlight(item.keyConfig, () => {
+            if (index === recording.length - 1) {
+              setIsPlayback(false);
+            }
+          });
+        }, item.time);
       });
     }
   }, [is_playback]);
 
-  const playAudioAndHighlight = (keyConfig: KeyConfig) => {
+  const playAudioAndHighlight = (keyConfig: KeyConfig, ended: () => void) => {
     setActiveKey(keyConfig.key);
-    const promise = new Promise<void>((resolve, reject) => {
-      const audio = new Audio(keyConfig?.sound);
-      audio.play();
-      audio.onended = () => {
-        resolve();
-        setActiveKey(undefined);
-      };
-    });
-    return promise;
+    const audio = new Audio(keyConfig?.sound);
+    audio.play();
+    audio.onended = () => {
+      setActiveKey(undefined);
+      ended();
+    };
   };
 
   const onKeyMatch = (keyConfig: KeyConfig) => {
@@ -113,7 +107,7 @@ const MainContainer = ({
         setScore(score - 1);
       }
     }
-    playAudioAndHighlight(keyConfig);
+    playAudioAndHighlight(keyConfig, () => {});
   };
 
   return (
